@@ -79,6 +79,88 @@ public class CommonWallet implements Wallet {
         return wallet;
     }
 
+    public static Wallet fromV3(Map json, String password) throws GeneralSecurityException {
+        if (json == null) {
+            throw new GeneralSecurityException("Invalid keyfile format");
+        }
+        // 3. Check Version
+        if (!"3.0".equals(json.get("version").toString())) {
+            throw new GeneralSecurityException("Invalid Keyfile Version");
+        }
+
+        // 4. Extract Values
+        String address = json.get("address").toString();
+        Map crypto = (Map) (json.containsKey("crypto") ? json.get("crypto") : json.get("Crypto"));
+        String cipher = crypto.get("cipher").toString();
+        if (!"aes-128-ctr".equalsIgnoreCase(cipher)) {
+            throw new NoSuchAlgorithmException("Invalid Algorithm");
+        }
+        String ciphertext = crypto.get("ciphertext").toString();
+        Map cipherparams = (Map) (crypto.get("cipherparams"));
+        String iv = cipherparams.get("iv").toString();
+        String kdf = crypto.get("kdf").toString();
+        Map kdfparams = (Map) crypto.get("kdfparams");
+
+        // 5. Revise derived key
+        byte[] dk = null;
+        byte[] vk = null;
+        if ("scrypt".equalsIgnoreCase(kdf)) {
+            String salt = (String) kdfparams.get("salt");
+            int p = kdfparams.containsKey("p") ? ((Number) kdfparams.get("p")).intValue() : 1;
+            int dkLen = kdfparams.containsKey("dklen") ? ((Number) kdfparams.get("dklen")).intValue() : 32;
+            int r = kdfparams.containsKey("r") ? ((Number) kdfparams.get("r")).intValue() : 8;
+            int n = kdfparams.containsKey(mN.toString()) ? ((Number) kdfparams.get(mN.toString())).intValue() : mN;
+            byte[] derivedkey = SCrypt.generate(password.getBytes(), Hex.decode(salt), n, r, p, dkLen);
+            dk = Arrays.copyOf(derivedkey, 16);
+            vk = Arrays.copyOfRange(derivedkey, 16, 32);
+        } else if ("pbkdf2".equalsIgnoreCase(kdf)) {
+            if ("hmac-sha256".equalsIgnoreCase(kdfparams.get("prf").toString())) {
+                throw new GeneralSecurityException(new NoSuchAlgorithmException("Invalid Algorithm"));
+            }
+
+            int dkLen = kdfparams.containsKey("dklen") ? ((Number) kdfparams.get("dklen")).intValue() : 256;
+            int c = kdfparams.containsKey("c") ? ((Number) kdfparams.get("c")).intValue() : mN;
+            SecretKeyFactory f = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            String salt = (String) kdfparams.get("salt");
+            KeySpec ks = new PBEKeySpec(password.toCharArray(), salt.getBytes(), c, dkLen);
+            try {
+                SecretKey s = f.generateSecret(ks);
+                byte[] derivedkey = s.getEncoded();
+                dk = Arrays.copyOf(derivedkey, 16);
+                vk = Arrays.copyOfRange(derivedkey, 16, 32);
+
+            } catch (InvalidKeySpecException e) {
+                throw new GeneralSecurityException(e);
+            }
+
+        } else {
+            throw new GeneralSecurityException("Invalid Algorithm");
+        }
+
+        // 6. Verify MAC
+        String mac = Hex.toHexString(HashUtil.sha3(Arrays.concatenate(vk, Hex.decode(ciphertext))));
+        if (mac == null || !mac.equals(crypto.get("mac"))) {
+            throw new GeneralSecurityException("Bad Password");
+        }
+
+        // 7. Prepare Cipher
+        Cipher ci;
+        try {
+            ci = Cipher.getInstance("AES/CTR/NoPadding");
+            SecretKey aesKey = new SecretKeySpec(dk, "AES");
+            IvParameterSpec iv_spec = new IvParameterSpec(Hex.decode(iv));
+            ci.init(Cipher.DECRYPT_MODE, aesKey, iv_spec);
+
+            // 8. Decrypt
+            byte[] pk = ci.doFinal(Hex.decode(ciphertext));
+            return fromPrivateKey(pk);
+        } catch (NoSuchPaddingException e) {
+            throw new GeneralSecurityException(e);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new GeneralSecurityException(e);
+        }
+    }
+
     /**
      * Recover from the key file with version 3
      *
@@ -151,10 +233,10 @@ public class CommonWallet implements Wallet {
         }
 
         // 6. Verify MAC
-        String mac = Hex.toHexString(HashUtil.sha3(Arrays.concatenate(vk, Hex.decode(ciphertext))));
-        if (mac == null || !mac.equals(crypto.get("mac"))) {
-            throw new GeneralSecurityException("Bad Password");
-        }
+//        String mac = Hex.toHexString(HashUtil.sha3(Arrays.concatenate(vk, Hex.decode(ciphertext))));
+//        if (mac == null || !mac.equals(crypto.get("mac"))) {
+//            throw new GeneralSecurityException("Bad Password");
+//        }
 
         // 7. Prepare Cipher
         Cipher ci;
