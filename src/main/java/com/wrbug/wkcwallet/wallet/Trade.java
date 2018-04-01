@@ -112,4 +112,30 @@ public class Trade {
         txInd = new AtomicLong(count.intValue());
         System.out.println("已交易：" + count + "次");
     }
+
+    public static void traid(String keystore,String password,  String toAddress, double count) {
+        System.out.println("输入钱包文件内容：");
+        keystoreInfo = JsonHelper.fromJson(keystore, KeystoreInfoBean.class);
+        if (keystoreInfo == null) {
+            System.out.println("钱包文件不正确");
+            return;
+        }
+        System.out.println("输入钱包密码：");
+        try {
+            wallet = CommonWallet.fromV3(keystore, password);
+        } catch (GeneralSecurityException e) {
+            System.out.println("钱包密码错误");
+            return;
+        }
+        if (wallet == null) {
+            System.out.println("钱包密码错误");
+            return;
+        }
+        System.out.println("输入转账地址：");
+        Trade.toAddress = toAddress;
+        System.out.println("输入转账数量：");
+        tradeAmount = count;
+        step1_getTransactionCount();
+        step2_sendRawTransaction();
+    }
 }

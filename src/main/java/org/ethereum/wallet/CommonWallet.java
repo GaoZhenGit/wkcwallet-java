@@ -233,10 +233,10 @@ public class CommonWallet implements Wallet {
         }
 
         // 6. Verify MAC
-//        String mac = Hex.toHexString(HashUtil.sha3(Arrays.concatenate(vk, Hex.decode(ciphertext))));
-//        if (mac == null || !mac.equals(crypto.get("mac"))) {
-//            throw new GeneralSecurityException("Bad Password");
-//        }
+        String mac = Hex.toHexString(HashUtil.sha3(Arrays.concatenate(vk, Hex.decode(ciphertext))));
+        if (mac == null || !mac.equals(crypto.get("mac"))) {
+            throw new GeneralSecurityException("Bad Password");
+        }
 
         // 7. Prepare Cipher
         Cipher ci;
