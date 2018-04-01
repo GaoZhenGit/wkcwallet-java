@@ -1,7 +1,0 @@
-{
-  "keyStore":"{\"address\":\"48d3a5ba74fea96ae1035c2310e3a595fde34a6c\",\"crypto\":{\"cipher\":\"aes-128-ctr\",\"ciphertext\":\"1c63a3fbb4338c23b970cd9db76fb153d1f55fea64be2aab13c18cd1eb73f80c\",\"cipherparams\":{\"iv\":\"c08d068d03fad283440e58fa3bf8dbdb\"},\"kdf\":\"scrypt\",\"kdfparams\":{\"dklen\":32,\"n\":4096,\"p\":6,\"r\":8,\"salt\":\"096353dca1ac6a11335653eabc01a24b307f0ea9d7f3183a4f9441cb790cab1f\"},\"mac\":\"2dacf78d2dba3241fe0466a589a9527399bc5e23580d6eea308ed645b9122995\"},\"id\":\"555e5b94-fd95-47bb-a48b-cc00cda1dc98\",\"version\":3}",
-  "letters":"linkeaon@ ",
-  "prefix":"",
-  "surfix":"5354",
-  "bitCount":3
-}
