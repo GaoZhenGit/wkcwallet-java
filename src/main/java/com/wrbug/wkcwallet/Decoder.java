@@ -7,9 +7,7 @@ import org.spongycastle.crypto.generators.SCrypt;
 import org.spongycastle.util.Arrays;
 import org.spongycastle.util.encoders.Hex;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -42,6 +40,9 @@ public class Decoder {
         int threadCount = config.letters.length();
         final int threadSize = list.size() / threadCount;
         ExecutorService service = Executors.newFixedThreadPool(config.letters.length());
+        final String dirPath = System.currentTimeMillis() + "";
+        File dir = new File(dirPath);
+        dir.mkdir();
         for (int i = 0; i < config.letters.length(); i++) {
             final int finalI = i;
             service.submit(new Callable<Object>() {
@@ -49,14 +50,20 @@ public class Decoder {
                 public Object call() throws Exception {
                     int start = finalI * threadSize;
                     int end = (finalI + 1) * threadSize;
+                    File file = new File(dirPath ,finalI + ".txt");
+                    BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file));
                     for (int j = start; j < end; j++) {
                         String pIt = get(list, j);
                         if (check(ciphertext, salt, n, r, p, dkLen, pIt, mac)) {
                             writeResult("password.txt", "password" + pIt);
                             System.exit(0);
                             return null;
+                        } else {
+                            outputStream.write((pIt + "\n").getBytes());
                         }
                     }
+                    outputStream.flush();
+                    outputStream.close();
                     return null;
                 }
             });
